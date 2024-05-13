@@ -1,29 +1,16 @@
-const fs = require('fs')
-const ip = require('ip')
-
 const { Kafka, CompressionTypes, logLevel } = require('../index')
 const PrettyConsoleLogger = require('./prettyConsoleLogger')
 
-const host = process.env.HOST_IP || ip.address()
+const host = 'hyperweave-rc.dodd.svc.cluster.local.'
 
 const kafka = new Kafka({
   logLevel: logLevel.INFO,
   logCreator: PrettyConsoleLogger,
-  brokers: [`${host}:9094`, `${host}:9097`, `${host}:9100`],
+  brokers: [`hyperweave-rc-0.${host}:9092`, `hyperweave-rc-1.${host}:9092`],
   clientId: 'example-producer',
-  ssl: {
-    servername: 'localhost',
-    rejectUnauthorized: false,
-    ca: [fs.readFileSync('./testHelpers/certs/cert-signed', 'utf-8')],
-  },
-  sasl: {
-    mechanism: 'plain',
-    username: 'test',
-    password: 'testtest',
-  },
 })
 
-const topic = 'topic-test'
+const topic = 'topic-admin-test-0'
 const producer = kafka.producer()
 
 const getRandomNumber = () => Math.round(Math.random() * 1000)

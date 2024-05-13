@@ -1,41 +1,31 @@
-const fs = require('fs')
-const ip = require('ip')
-
 const { Kafka, logLevel } = require('../index')
 const PrettyConsoleLogger = require('./prettyConsoleLogger')
 
-const host = process.env.HOST_IP || ip.address()
+const host = 'hyperweave-rc.dodd.svc.cluster.local.'
 
 const kafka = new Kafka({
   logLevel: logLevel.INFO,
   logCreator: PrettyConsoleLogger,
-  brokers: [`${host}:9094`, `${host}:9097`, `${host}:9100`],
+  brokers: [`hyperweave-rc-0.${host}:9092`, `hyperweave-rc-1.${host}:9092`],
   clientId: 'test-admin-id',
-  ssl: {
-    servername: 'localhost',
-    rejectUnauthorized: false,
-    ca: [fs.readFileSync('./testHelpers/certs/cert-signed', 'utf-8')],
-  },
-  sasl: {
-    mechanism: 'plain',
-    username: 'test',
-    password: 'testtest',
-  },
 })
 
-const topic = 'topic-test1'
+const topic = 'topic-admin-test-0'
 
 const admin = kafka.admin()
 
 const run = async () => {
   await admin.connect()
-  await admin.createTopics({
-    topics: [{ topic }],
+  const res0 = await admin.createTopics({
+    topics: [{ topic, numPartitions: 2, replicationFactor: 0 }],
     waitForLeaders: true,
   })
-  await admin.createPartitions({
-    topicPartitions: [{ topic: topic, count: 3 }],
-  })
+  kafka.logger().info(`${JSON.stringify(res0)}`)
+  const res = await admin.fetchTopicMetadata({ topics: [topic] })
+  kafka.logger().info(`${JSON.stringify(res)}`)
+  //  await admin.createPartitions({
+  //    topicPartitions: [{ topic: topic, count: 3 }],
+  //  })
 }
 
 run().catch(e => kafka.logger().error(`[example/admin] ${e.message}`, { stack: e.stack }))
